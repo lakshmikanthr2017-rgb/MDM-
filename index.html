@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಅಕ್ಷರ ದಾಸೋಹ - MDM Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS library to read Excel files directly in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 11px; background: white; }
+            .shadow-lg { box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans p-4 md:p-8">
+    <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-xl p-6 md:p-8">
+        
+        <!-- Header -->
+        <div class="text-center border-b pb-4 mb-6">
+            <h1 class="text-xl md:text-2xl font-bold text-green-700">ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ, ಗೊಲ್ಲರಹಟ್ಟಿ</h1>
+            <p class="text-sm text-gray-600 mt-1">ಅಕ್ಷರ ದಾಸೋಹ ಬಿಸಿಯೂಟ ನಿರ್ವಹಣಾ ತಂತ್ರಾಂಶ (MDM Monthly Register)</p>
+        </div>
+
+        <!-- File Upload & Action Controls (Hidden when printing) -->
+        <div class="flex flex-col md:flex-row justify-between items-center bg-green-50 border border-green-200 p-4 rounded-lg mb-6 gap-4 no-print">
+            <div>
+                <label class="block text-sm font-semibold text-green-900 mb-1">ನಿಮ್ಮ ಎಕ್ಸೆಲ್ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ (Upload Excel File):</label>
+                <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer"/>
+            </div>
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow transition w-full md:w-auto">
+                🖨️ ವರದಿ ಮುದ್ರಿಸಿ (Print / PDF)
+            </button>
+        </div>
+
+        <!-- Status / Sheet Info -->
+        <div id="status-box" class="mb-4 text-sm font-medium text-gray-600">
+            ಪರಿಶೀಲನೆಗಾಗಿ ಮೇಲಿನ ಬಟನ್ ಬಳಸಿ ನಿಮ್ಮ ಎಕ್ಸೆಲ್ ಫೈಲ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.
+        </div>
+
+        <!-- Data Display Table Container -->
+        <div id="table-container" class="border rounded-lg overflow-x-auto shadow-sm min-h-[200px] flex items-center justify-center bg-gray-50">
+            <p class="text-gray-400">ಇಲ್ಲಿ ಎಕ್ಸೆಲ್ ಡೇಟಾ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತದೆ</p>
+        </div>
+
+        <!-- Footer Attribution -->
+        <div class="mt-8 text-center text-xs text-gray-400 border-t pt-4">
+            Karnataka Primary School Administration | Designed for GitHub Pages
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('excel-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // Grab the first sheet (or 'MDM c' if available)
+                    let sheetName = workbook.SheetNames.includes('MDM c') ? 'MDM c' : workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+
+                    // Convert sheet to HTML table
+                    const htmlTable = XLSX.utils.sheet_to_html(worksheet, { header: "" });
+
+                    // Render inside container
+                    const container = document.getElementById('table-container');
+                    container.innerHTML = htmlTable;
+                    container.classList.remove('flex', 'items-center', 'justify-center', 'bg-gray-50');
+                    
+                    // Style the generated table with Tailwind classes
+                    const table = container.querySelector('table');
+                    if (table) {
+                        table.className = 'w-full text-xs border-collapse text-left';
+                        table.querySelectorAll('td, th').forEach(cell => {
+                            cell.className = 'border border-gray-300 p-1.5 whitespace-nowrap';
+                        });
+                    }
+
+                    document.getElementById('status-box').innerHTML = `<span class="text-green-600 font-bold">✓ ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿದೆ:</span> ${file.name} (ಶೀಟ್: ${sheetName})`;
+                } catch (error) {
+                    alert('ಫೈಲ್ ಓದುವುದರಲ್ಲಿ ದೋಷ ಉಂಟಾಗಿದೆ. ದಯವಿಟ್ಟು ಸರಿಯಾದ ಎಕ್ಸೆಲ್ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ.');
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
